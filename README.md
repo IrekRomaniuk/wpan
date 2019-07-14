@@ -18,8 +18,13 @@ $python3.7 -m pip install -r requirements.txt
 $python3.7 wpan.py
 ```
 
+### Workspot
 
-####
+[Using the Workspot Control API](https://workspot.zendesk.com/hc/en-us/articles/360017693611-Using-the-Workspot-Control-API)
+
+#### Palo Alto Networks
+
+[pan-python is a multi-tool set for Palo Alto Networks PAN-OS, Panorama, WildFire and AutoFocus](https://github.com/kevinsteves/pan-python/blob/master/doc/pan.xapi.rst)
 
 ```
 admin@PA-200> show user ip-user-mapping all

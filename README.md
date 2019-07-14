@@ -39,17 +39,12 @@ admin@PA-200> show user ip-user-mapping all
 <response status="success"><result>IP                                            Vsys   From    User                             IdleTimeout(s) MaxTimeout(s)
 --------------------------------------------- ------ ------- -------------------------------- -------------- -------------
 1.1.1.1                                       vsys1  XMLAPI  user1                            1802           1802
-4.4.4.4                                       vsys1  XMLAPI  user4                            215994         215994
-2.2.2.2                                       vsys1  XMLAPI  user2                            2702           2702
 3.3.3.3                                       vsys1  XMLAPI  user3                            Never          Never
-Total: 4 users
+Total: 2 users
 </result></response>
-```
-
 IP                                            Vsys   From    User                             IdleTimeout(s) MaxTimeout(s)
 --------------------------------------------- ------ ------- -------------------------------- -------------- -------------
 1.1.1.1                                       vsys1  XMLAPI  user1                            1802           1802
-4.4.4.4                                       vsys1  XMLAPI  user4                            215994         215994
-2.2.2.2                                       vsys1  XMLAPI  user2                            2702           2702
 3.3.3.3                                       vsys1  XMLAPI  user3                            Never          Never
-Total: 4 users
+Total: 2 users
+```

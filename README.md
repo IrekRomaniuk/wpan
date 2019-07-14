@@ -1,7 +1,7 @@
 
 ## Work in progress
 
-### Formt of config file
+### Format of config file
 
 ```
 --- # Workspot credentials

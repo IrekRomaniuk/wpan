@@ -64,11 +64,15 @@ def get_desktops(j):
     """ Parse user email and ip address  """
     logger.debug("--->desktops:")
     userid = []
+    poolid = {}
     for i in j["desktops"]:
+        poolid[i["poolName"]]=[]
         if i["email"]:
             logger.debug(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["email"],i["ipAddress"],i["status"])))
-            userid.append(("Workspot_"+i["poolName"]+ "\\" + i["email"], i["ipAddress"]))
-    return userid    
+            #userid.append(("Workspot_"+i["poolName"]+ "\\" + i["email"], i["ipAddress"]))
+            userid.append(("WS\\" + i["email"].split('@')[0], i["ipAddress"]))    
+    poolid[i["poolName"]]=userid            
+    return poolid  
 
 def panuserid(panapi, panhost, xml):
     try:
@@ -149,12 +153,13 @@ if __name__ == "__main__":
     #sys.exit(0)
     [urls.append(URL+'/'+i+'/desktops') for i in id]   
     r = asyncio.run(main(urls, Headers))    
-        #r = asyncio.run(main(url+'/'+i+'/desktops', Headers))
-    userid.append(list(chain.from_iterable([get_desktops(json.loads(j)) for j in r])))    
-    logger.info(f"--->{userid}")
+    for j in r:
+        print(get_desktops(json.loads(j)))
+    #userid.append(list(chain.from_iterable([get_desktops(json.loads(j)) for j in r]))) 
+    #logger.info(f"--->{userid}")
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
-
+    sys.exit(0)
     xml = set_user("user5", "5.5.5.5", 3600)
     logger.debug(f"--->{xml}")
     panuserid(config[4]["PanApi"],"192.168.3.1", xml)

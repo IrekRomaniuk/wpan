@@ -10,7 +10,7 @@ from aiohttp import ClientSession
 
 # Variable initialization #
 URL = "https://api.workspot.com/v1.0/pools"
-timeout = 3600
+timeout = 60 # minutes
 
 # Logging setup #
 
@@ -35,11 +35,10 @@ async def workspot(url,headers):
 
 def get_token(ApiClientPair, Username, Password):
     """ Get authorization token from Workspot API """
-    
     EncodedApiCreds = base64.b64encode(ApiClientPair.encode('ascii'))
     HeaderAuthValue = b"Basic " + EncodedApiCreds
     Headers = { 'Authorization': '{}'.format(HeaderAuthValue.decode('ascii'))}
-    logger.info("-->>Authorization [%s]", Headers["Authorization"])
+    logger.debug("-->>Authorization [%s]", Headers["Authorization"])
     url = "https://api.workspot.com/oauth/token" #?grant_type=password
     payload = { # "Content-Type": "x-www-form-urlencoded", grant_type": 'password', "grant_type": 'client_credentials'
         'username': Username,
@@ -54,23 +53,23 @@ def get_token(ApiClientPair, Username, Password):
 
 def get_pools(j):
     """ Parse desktop pools id """
-    logger.info("--->desktopPools:")
+    #logger.info("--->desktopPools:")
     id = []
     for i in j["desktopPools"]:
         logger.info(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["usedCount"],i["description"],i["id"])))
         id.append(i["id"])
     return id 
 
-def get_desktops(j):
-    """ Parse user email and ip address  """
+def get_ugxml(j):
+    """ Parse users and groups into xml  """
     logger.debug("--->desktops:")
     ipuser, groups = "", ""
     for i in j["desktops"]:
         if i["email"]:
             logger.debug(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["email"],i["ipAddress"],i["status"])))       
-            ipuser+="""<entry name="{}" ip="{}" timeout="{}"/>""".format("WS\\" + i["email"].split('@')[0],i["ipAddress"], timeout)  
+            ipuser+="""<entry name="{}" ip="{}" timeout="{}"/>""".format("ws_" + i["poolName"] + "\\" + i["email"].split('@')[0],i["ipAddress"], timeout)  
             groups+="""<entry name="{}"/>""".format("WS\\" + i["email"].split('@')[0]) 
-    groups="""<entry name="{}"><members>{}</members></entry>""".format(i["poolName"], groups)                
+    groups="""<entry name="{}"><members>{}</members></entry>""".format("ws_"+i["poolName"], groups)                
     return ipuser, groups  
 
 def panuserid(panapi, panhost, xml):
@@ -145,12 +144,14 @@ if __name__ == "__main__":
     [urls.append(URL+'/'+i+'/desktops') for i in id]   
     r = asyncio.run(main(urls, Headers))    
     for j in r:
-        user, group = get_desktops(json.loads(j))
+        user, group = get_ugxml(json.loads(j))
         logger.debug(f"--->{user}\n{group}")
         xml_user = set_user(user, 3600)
         xml_group = set_group(group)
-        panuserid(config[4]["PanApi"],"192.168.3.1", xml_user)
-        panuserid(config[4]["PanApi"],"192.168.3.1", xml_group)
+        logger.debug(f"--->{config[5]["Firewalls"]}")
+        for i in config[5]["Firewalls"]:
+            panuserid(config[4]["PanApi"],i, xml_user)
+            panuserid(config[4]["PanApi"],i, xml_group)
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
     

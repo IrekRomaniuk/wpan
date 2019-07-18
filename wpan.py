@@ -76,7 +76,7 @@ def get_ugxml(j):
     groups="""<entry name="{}"><members>{}</members></entry>""".format("ws_"+i["poolName"], groups)                
     return ipuser, groups  
 
-def panuserid(panapi, panhost, xml):
+def panuserid(panapi, panhost, xml, vsys=None):
     try:
         xapi = pan.xapi.PanXapi(api_key=panapi, hostname=panhost)
     except pan.xapi.PanXapiError as msg:
@@ -84,7 +84,7 @@ def panuserid(panapi, panhost, xml):
         sys.exit(1)
     xpath = "/api/"
     try:
-        xapi.user_id(cmd=xml, vsys=None)
+        xapi.user_id(cmd=xml, vsys=vsys)
     except pan.xapi.PanXapiError as msg:
         logger.error(f"--->{msg}")
         sys.exit(1)
@@ -143,19 +143,25 @@ if __name__ == "__main__":
     r = asyncio.run(main(urls, Headers))
     id = list(chain.from_iterable([get_pools(json.loads(j)) for j in r])) # flatten list
     logger.info(f"--->{id}")
-    userid = []
+    userid, number = [], 0
     urls.pop(0) 
     [urls.append(URL+'/'+i+'/desktops') for i in id]   
-    r = asyncio.run(main(urls, Headers))    
+    r = asyncio.run(main(urls, Headers))  
     for j in r:
         user, group = get_ugxml(json.loads(j))
         logger.debug(f"--->{user}\n{group}")
         xml_user = set_user(user, 3600)
         xml_group = set_group(group)
-        #logger.debug(f"--->{config[5]["Firewalls"]}")
-        for i in config[5]["Firewalls"]:
-            panuserid(config[4]["PanApi"],i, xml_user)
-            panuserid(config[4]["PanApi"],i, xml_group)
+        #logger.info(f'--->Firewalls, vsys : {config[5]["Firewalls"]} and group: {number+1}')
+        f , number = config[5]["Firewalls"], number +1
+        for i in f:
+            i = i.split()
+            if len(i) == 1:
+                i.append(1) # append defualt vsys
+            for vsys in i[1:]:
+                logger.info(f'--->vsys: {vsys} on {i[0]} with group: {number+1}')
+                #panuserid(config[4]["PanApi"][0],i[0], xml_user)
+                #panuserid(config[4]["PanApi"][0],i[0], xml_group)
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
     

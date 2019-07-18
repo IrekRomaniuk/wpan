@@ -10,7 +10,7 @@
 - WsControlUser : "" #Workspot Control Administrator user email address
 - WsControlPass : "" #Workspot Control Administrator user password
 - Firewalls: 
-  - "192.168.3.1" # List of PAN firewall addresses
+  - "192.168.3.1 2" # List of PAN firewall (vsys included, 1 is default)
 ```
 
 ### Install and Run

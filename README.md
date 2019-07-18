@@ -1,5 +1,5 @@
 
-# Work in progress (Under Development)
+# Worskpot PAN User-ID integration
 
 ### Format of config file
 

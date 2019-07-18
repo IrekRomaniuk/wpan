@@ -160,8 +160,8 @@ if __name__ == "__main__":
                 i.append(1) # append defualt vsys
             for vsys in i[1:]:
                 logger.info(f'--->vsys: {vsys} on {i[0]} with group: {number+1}')
-                #panuserid(config[4]["PanApi"][0],i[0], xml_user)
-                #panuserid(config[4]["PanApi"][0],i[0], xml_group)
+                panuserid(config[4]["PanApi"][0],i[0], xml_user)
+                panuserid(config[4]["PanApi"][0],i[0], xml_group)
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
     

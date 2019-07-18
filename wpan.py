@@ -10,6 +10,7 @@ from aiohttp import ClientSession
 
 # Variable initialization #
 URL = "https://api.workspot.com/v1.0/pools"
+timeout = 3600
 
 # Logging setup #
 
@@ -63,16 +64,14 @@ def get_pools(j):
 def get_desktops(j):
     """ Parse user email and ip address  """
     logger.debug("--->desktops:")
-    userid = []
-    poolid = {}
+    ipuser, groups = "", ""
     for i in j["desktops"]:
-        poolid[i["poolName"]]=[]
         if i["email"]:
-            logger.debug(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["email"],i["ipAddress"],i["status"])))
-            #userid.append(("Workspot_"+i["poolName"]+ "\\" + i["email"], i["ipAddress"]))
-            userid.append(("WS\\" + i["email"].split('@')[0], i["ipAddress"]))    
-    poolid[i["poolName"]]=userid            
-    return poolid  
+            logger.debug(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["email"],i["ipAddress"],i["status"])))       
+            ipuser+="""<entry name="{}" ip="{}" timeout="{}"/>""".format("WS\\" + i["email"].split('@')[0],i["ipAddress"], timeout)  
+            groups+="""<entry name="{}"/>""".format("WS\\" + i["email"].split('@')[0]) 
+    groups="""<entry name="{}"><members>{}</members></entry>""".format(i["poolName"], groups)                
+    return ipuser, groups  
 
 def panuserid(panapi, panhost, xml):
     try:
@@ -80,45 +79,38 @@ def panuserid(panapi, panhost, xml):
     except pan.xapi.PanXapiError as msg:
         print('pan.xapi.PanXapi:', msg, file=sys.stderr)
         sys.exit(1)
-
     xpath = "/api/"
-
     try:
         xapi.user_id(cmd=xml, vsys=None)
     except pan.xapi.PanXapiError as msg:
         print('user-id:', msg, file=sys.stderr)
         sys.exit(1)
+    logger.info(f"--->userid to {panhost} applied")
 
-    print('uid applied')
-
-def set_user(user, address, timeout):
+def set_user(ipuser, timeout):
     uid_xml = """
     '''<uid-message>
     <type>update</type>
     <payload>
         <login>
-        <entry name="{}" ip="{}" timeout="{}"/>
+        {}
         </login>
     </payload>
     </uid-message>'''
-    """.format(user, address, timeout)
+    """.format(ipuser, timeout)
     return uid_xml    
     
-def set_group(user, group):
+def set_group(group):
     uid_xml = """
     '''<uid-message>
   <type>update</type>
   <payload>
     <groups>
-      <entry name="group1">
-        <members>
-          <entry name="user1"/>
-        </members>
-      </entry>
+      {}
     </groups>
   </payload>
 </uid-message>'''
-    """.format(user, address, timeout)
+    """.format(group)
     return uid_xml    
     
     
@@ -150,19 +142,17 @@ if __name__ == "__main__":
     logger.info(f"--->{id}")
     userid = []
     urls.pop(0) 
-    #sys.exit(0)
     [urls.append(URL+'/'+i+'/desktops') for i in id]   
     r = asyncio.run(main(urls, Headers))    
     for j in r:
-        print(get_desktops(json.loads(j)))
-    #userid.append(list(chain.from_iterable([get_desktops(json.loads(j)) for j in r]))) 
-    #logger.info(f"--->{userid}")
+        user, group = get_desktops(json.loads(j))
+        logger.debug(f"--->{user}\n{group}")
+        xml_user = set_user(user, 3600)
+        xml_group = set_group(group)
+        panuserid(config[4]["PanApi"],"192.168.3.1", xml_user)
+        panuserid(config[4]["PanApi"],"192.168.3.1", xml_group)
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
-    sys.exit(0)
-    xml = set_user("user5", "5.5.5.5", 3600)
-    logger.debug(f"--->{xml}")
-    panuserid(config[4]["PanApi"],"192.168.3.1", xml)
     
    
                 

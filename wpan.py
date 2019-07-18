@@ -5,8 +5,9 @@
 ####################################
 
 import sys, base64, json, logging 
-import requests, asyncio, pan.xapi
+import requests, urllib3, asyncio, pan.xapi
 from aiohttp import ClientSession
+from aiohttp import TCPConnector
 
 # Variable initialization #
 URL = "https://api.workspot.com/v1.0/pools"
@@ -27,9 +28,11 @@ logging.getLogger("chardet.charsetprober").disabled = True
 
 async def workspot(url,headers):
     """ Calling Workspot API `url` with authorization `headers`"""
-    async with ClientSession() as session:
+    async with ClientSession(connector=TCPConnector(ssl=False)) as session:
         async with session.get(url,headers=headers) as response:
-            logger.info("--->Got response [%s] for url: %s", response.status, url)
+            if response.status != 200:
+                logger.error("--->Got response [%s] for url: %s", response.status, url)
+                sys.exit(2)
             response = await response.read()            
             return response
 
@@ -45,8 +48,9 @@ def get_token(ApiClientPair, Username, Password):
         'password': Password,
         'Content-Type': 'x-www-form-urlencoded',
         'grant_type': 'password'
-        }   
-    ApiReturn = requests.post(url, data=payload, headers=Headers) #,auth=HTTPBasicAuth(WsControlUser, WsControlPass)
+        }  
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)     
+    ApiReturn = requests.post(url, data=payload, headers=Headers, verify=False) #,auth=HTTPBasicAuth(WsControlUser, WsControlPass)
     ApiToken = json.loads(ApiReturn.content)["access_token"]
     logger.info("--->Got token [%s]", ApiToken)
     return { "Authorization": ("Bearer "+ ApiToken), 'Content-Type': 'application/json'}
@@ -76,13 +80,13 @@ def panuserid(panapi, panhost, xml):
     try:
         xapi = pan.xapi.PanXapi(api_key=panapi, hostname=panhost)
     except pan.xapi.PanXapiError as msg:
-        print('pan.xapi.PanXapi:', msg, file=sys.stderr)
+        logger.error(f"--->{msg}")
         sys.exit(1)
     xpath = "/api/"
     try:
         xapi.user_id(cmd=xml, vsys=None)
     except pan.xapi.PanXapiError as msg:
-        print('user-id:', msg, file=sys.stderr)
+        logger.error(f"--->{msg}")
         sys.exit(1)
     logger.info(f"--->userid to {panhost} applied")
 
@@ -128,7 +132,7 @@ if __name__ == "__main__":
             config = yaml.safe_load(stream)
             logger.info(f"--->{config}")
         except yaml.YAMLError as exc:
-            logger.err(f"--->{exc}")
+            logger.error(f"--->{exc}")
     ApiClientPair = config[0]["ApiClientId"] + ':' + config[1]["ApiClientSecret"]
     Username = config[2]["WsControlUser"],
     Password = config[3]["WsControlPass"],
@@ -148,7 +152,7 @@ if __name__ == "__main__":
         logger.debug(f"--->{user}\n{group}")
         xml_user = set_user(user, 3600)
         xml_group = set_group(group)
-        logger.debug(f"--->{config[5]["Firewalls"]}")
+        #logger.debug(f"--->{config[5]["Firewalls"]}")
         for i in config[5]["Firewalls"]:
             panuserid(config[4]["PanApi"],i, xml_user)
             panuserid(config[4]["PanApi"],i, xml_group)

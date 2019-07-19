@@ -28,7 +28,7 @@ logging.getLogger("chardet.charsetprober").disabled = True
 
 async def workspot(url,headers):
     """ Calling Workspot API `url` with authorization `headers`"""
-    async with ClientSession(connector=TCPConnector(ssl=False)) as session:
+    async with ClientSession(connector=TCPConnector(ssl=False)) as session: 
         async with session.get(url,headers=headers) as response:
             if response.status != 200:
                 logger.error("--->Got response [%s] for url: %s", response.status, url)
@@ -80,13 +80,13 @@ def panuserid(panapi, panhost, xml, vsys=None):
     try:
         xapi = pan.xapi.PanXapi(api_key=panapi, hostname=panhost)
     except pan.xapi.PanXapiError as msg:
-        logger.error(f"--->{msg}")
+        logger.error(f"--->pan.xapi.PanXapi: {msg}")
         sys.exit(1)
     xpath = "/api/"
     try:
         xapi.user_id(cmd=xml, vsys=vsys)
     except pan.xapi.PanXapiError as msg:
-        logger.error(f"--->{msg}")
+        logger.error(f"--->xapi.user_id ({vsys}): {msg}")
         sys.exit(1)
     logger.info(f"--->userid to {panhost} applied")
 
@@ -156,12 +156,13 @@ if __name__ == "__main__":
         f , number = config[5]["Firewalls"], number +1
         for i in f:
             i = i.split()
+            print(len(i), i)
             if len(i) == 1:
-                i.append(1) # append defualt vsys
+                i.append(None) # append defualt vsys
             for vsys in i[1:]:
                 logger.info(f'--->vsys: {vsys} on {i[0]} with group: {number+1}')
-                panuserid(config[4]["PanApi"][0],i[0], xml_user)
-                panuserid(config[4]["PanApi"][0],i[0], xml_group)
+                panuserid(config[4]["PanApi"],i[0], xml_user, vsys)
+                panuserid(config[4]["PanApi"],i[0], xml_group, vsys)
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
     

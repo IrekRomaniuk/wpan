@@ -11,7 +11,7 @@ from aiohttp import TCPConnector
 
 # Variable initialization #
 URL = "https://api.workspot.com/v1.0/pools"
-timeout = 60 # minutes
+timeout = 0 # minutes
 
 # Logging setup #
 
@@ -23,6 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(sys.argv[0])
 logging.getLogger("chardet.charsetprober").disabled = True
+logger.propagate = False
 
 ############################  
 
@@ -60,7 +61,9 @@ def get_pools(j):
     #logger.info("--->desktopPools:")
     id = []
     for i in j["desktopPools"]:
-        logger.info(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["usedCount"],i["description"],i["id"])))
+        logger.debug(('--->{0:<20} {1:<3} {2:<20} {3:<30}'.format(i["name"],i["usedCount"],i["description"],i["id"])))
+        print("Statistic.{0}: {1}".format(i["name"], i["usedCount"]))
+        print("Message.{0}: {1}".format(i["name"], i["description"]))
         id.append(i["id"])
     return id 
 
@@ -76,19 +79,20 @@ def get_ugxml(j):
     groups="""<entry name="{}"><members>{}</members></entry>""".format("ws_"+i["poolName"], groups)                
     return ipuser, groups  
 
-def panuserid(panapi, panhost, xml, vsys=None):
+def panuserid(panapi, panhost, vsys=None, *xml):
     try:
         xapi = pan.xapi.PanXapi(api_key=panapi, hostname=panhost)
     except pan.xapi.PanXapiError as msg:
         logger.error(f"--->pan.xapi.PanXapi: {msg}")
         sys.exit(1)
     xpath = "/api/"
-    try:
-        xapi.user_id(cmd=xml, vsys=vsys)
-    except pan.xapi.PanXapiError as msg:
-        logger.error(f"--->xapi.user_id ({vsys}): {msg}")
-        sys.exit(1)
-    logger.info(f"--->userid to {panhost} applied")
+    for doc in xml:
+        try:
+            xapi.user_id(cmd=doc, vsys=vsys)
+        except pan.xapi.PanXapiError as msg:
+            logger.error(f"--->xapi.user_id ({vsys}): {msg}")
+            sys.exit(1)
+        logger.info(f"--->userid to {panhost} applied")
 
 def set_user(ipuser, timeout):
     uid_xml = """
@@ -116,9 +120,7 @@ def set_group(group):
     """.format(group)
     return uid_xml    
     
-    
 async def main(url, Headers): 
-    #res = await asyncio.gather(workspot(url, Headers))  
     res = await asyncio.gather(*(workspot(url, Headers) for url in urls))
     return res 
     
@@ -153,16 +155,15 @@ if __name__ == "__main__":
         xml_user = set_user(user, 3600)
         xml_group = set_group(group)
         #logger.info(f'--->Firewalls, vsys : {config[5]["Firewalls"]} and group: {number+1}')
-        f , number = config[5]["Firewalls"], number +1
+        f , number = config[5]["Firewalls"], number
         for i in f:
             i = i.split()
-            print(len(i), i)
             if len(i) == 1:
-                i.append(None) # append defualt vsys
+                i.append(None) # append defualt vsys    
             for vsys in i[1:]:
                 logger.info(f'--->vsys: {vsys} on {i[0]} with group: {number+1}')
-                panuserid(config[4]["PanApi"],i[0], xml_user, vsys)
-                panuserid(config[4]["PanApi"],i[0], xml_group, vsys)
+                panuserid(config[4]["PanApi"], i[0], vsys, [xml_user, xml_group])
+        number = number +1      
     end = time.perf_counter() - start
     logger.info(f"--->finished in {end:0.2f} seconds.")
     

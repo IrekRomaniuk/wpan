@@ -17,13 +17,13 @@ timeout = 0 # minutes
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
-    level=logging.INFO,
+    level=logging.ERROR,
     datefmt="%H:%M:%S",
     stream=sys.stderr,
 )
 logger = logging.getLogger(sys.argv[0])
 logging.getLogger("chardet.charsetprober").disabled = True
-logger.propagate = False
+logger.propagate = True
 
 ############################  
 
@@ -92,7 +92,7 @@ def panuserid(panapi, panhost, vsys=None, *xml):
         except pan.xapi.PanXapiError as msg:
             logger.error(f"--->xapi.user_id ({vsys}): {msg}")
             sys.exit(1)
-        logger.info(f"--->userid to {panhost} applied")
+        logger.info(f"--->userid to {panhost} applied")  
 
 def set_user(ipuser, timeout):
     uid_xml = """
@@ -154,7 +154,6 @@ if __name__ == "__main__":
         logger.debug(f"--->{user}\n{group}")
         xml_user = set_user(user, 3600)
         xml_group = set_group(group)
-        #logger.info(f'--->Firewalls, vsys : {config[5]["Firewalls"]} and group: {number+1}')
         f , number = config[5]["Firewalls"], number
         for i in f:
             i = i.split()
@@ -162,9 +161,11 @@ if __name__ == "__main__":
                 i.append(None) # append defualt vsys    
             for vsys in i[1:]:
                 logger.info(f'--->vsys: {vsys} on {i[0]} with group: {number+1}')
-                panuserid(config[4]["PanApi"], i[0], vsys, [xml_user, xml_group])
+                panuserid(config[4]["PanApi"], i[0], vsys, [xml_user, xml_group])  
         number = number +1      
     end = time.perf_counter() - start
+    print("Statistic.ws_perf: {0}".format(round(end,1)))
+    print("Message.ws_perf: {0}".format('Response'))
     logger.info(f"--->finished in {end:0.2f} seconds.")
     
    
